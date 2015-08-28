@@ -89,6 +89,7 @@ def show_table():
         datademo = pd.read_csv( request.args.get('data') )
     else:
         datademo = bz.odo( data['iris'], pd.DataFrame )
+
     source = ColumnDataSource( datademo )
     return render_template( 'layout.html')
 

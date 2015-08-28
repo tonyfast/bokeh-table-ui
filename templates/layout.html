@@ -171,7 +171,7 @@
       });
 
       dispatch.on( 'init.dataframe', function(){
-        d3.text( 'http://localhost:5001/dataframe', function(txt){
+        d3.text( '/dataframe', function(txt){
           d3.select('.viewer')
               .append('div')
               .classed('viewport', true)
@@ -341,7 +341,7 @@
 
       //start doing things
 
-      d3.json('http://localhost:5001/keys',function(keys){
+      d3.json('/keys',function(keys){
         // create table UI
         d3.text( "{{ url_for('static', filename='dispatch.yaml') }}", function(yml){
             d3.select(document)
