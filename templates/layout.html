@@ -1,0 +1,382 @@
+<!doctype html>
+<html>
+    <head>
+        <!--script src="../bower_components/d3/d3.min.js">
+            </script>
+
+        <script src="../bower_components/js-yaml/dist/js-yaml.min.js">
+            </script>
+
+        <script type="text/javascript" src="../bokeh-0.9.1.min.js">
+            </script>
+        <link rel="stylesheet" href="../bokeh-0.9.1.min.css" type="text/css">
+
+        <link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap.min.css">
+
+        <link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap-theme.min.css"-->
+
+        <link rel="stylesheet" href="{{ url_for('bower.static', filename='codemirror/lib/codemirror.css') }}">
+        <script src="{{ url_for('bower.static', filename='codemirror/lib/codemirror.js') }}"></script>
+        <script src="{{ url_for('bower.static', filename='commonmark/dist/commonmark.js') }}"></script>
+
+        <script src="{{ url_for('bower.static', filename='esprima/esprima.js') }}"></script>
+        <script src="{{ url_for('bower.static', filename='d3/d3.min.js') }}"></script>
+        <script src="{{ url_for('bower.static', filename='js-yaml/dist/js-yaml.min.js') }}"></script>
+        <link rel="stylesheet" href="{{ url_for('bower.static', filename='bootstrap/dist/css/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('bower.static', filename='bootstrap/dist/css/bootstrap-theme.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('bower.static', filename='github-markdown-css/github-markdown.css') }}">
+        <link rel="stylesheet" href="{{ url_for('bower.static', filename='codemirror/theme/midnight.css') }}">
+
+        <script type="text/javascript" src="{{ url_for('static', filename='bokeh-0.9.1.min.js') }}">
+            </script>
+        <link rel="stylesheet" href="{{ url_for('static', filename='bokeh-0.9.1.min.css') }}" type="text/css">
+
+        <style>
+        #table-explorer td {
+            text-align: left;
+        }
+        #table-explorer tr.current-axis {
+            border: black;
+        }
+        .viewport.hidden {
+          display: none;
+        }
+        .viewport {
+          display: block;
+        }
+        </style>
+    </head>
+
+    <body>
+    <div class="container">
+        <ul class="nav nav-tabs nav-justified">
+        </ul>
+        <div class="panel panel-default">
+          <!--div class="panel-heading">
+            <h3 class="panel-title">Panel title</h3>
+          </div-->
+          <div class="viewer panel-body">
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 editor" id="axis-editor">
+            <div class="panel panel-warning row">
+              <div class="panel-heading">About this plot</div>
+              <div class="panel-body"></div>
+            </div>
+          </div>
+          <div class="col-md-8 editor" id="metadata-editor">
+            <div class="panel panel-danger row">
+              <div class="panel-heading">About this data</div>
+              <div class="panel-body"></div>
+            </div>
+          </div>
+          <div class="col-md-12 preview" id="metadata-preview" style="display:none;">
+            <div class="panel panel-warning row">
+              <div class="panel-body"></div>
+            </div>
+          </div>
+        </div>
+    </div>
+    <script>
+    ;(function(){
+      //load the keys
+
+      reader = new commonmark.Parser();
+      writer = new commonmark.HtmlRenderer();
+      var dispatch = d3.dispatch('init','bokeh','table','dataframe');
+
+      dispatch.on( 'init.tabs', function(){
+          // Load action tabs
+          var tabs =   d3.select('ul.nav.nav-tabs')
+                .selectAll('li')
+                .data(document.__data__.page.tabs)
+                .enter()
+                .append('li')
+                .attr('role','presentation')
+                .each( function(d, i){
+                        d3.select(this)
+                            .append('a')
+                            .attr('data-trigger',d)
+                            .classed( 'view-trigger', true )
+                            .classed('active', i ==0 )
+                            .text(d)
+                });
+      });
+
+      dispatch.on( 'init.table', function(){
+        //load the table pane
+        // create table UI
+        var keys = d3.values(document.__data__.rows);
+
+        var table = d3.select('.viewer')
+            .append('table')
+            .classed('viewport', true)
+            .classed('hidden', false)
+            .attr('id', 'table-explorer')
+            .classed('table', true)
+            .classed('table-bordered', true)
+            .classed('table-striped', true);
+
+        table.append('tbody')
+            .selectAll('tr')
+            .data(keys)
+            .enter()
+            .append('tr')
+            .attr( 'data-row-name', function(d){return d['key'];})
+            .classed('x-axis',true)
+            .each( function(row_key){
+                var row = d3.select(this);
+                row.append('th')
+
+                    .text(row_key['key'])
+                row.selectAll('td')
+                    .classed('editable',true)
+                    .data( keys )
+                    .enter()
+                    .append('td')
+                    .attr('data-row', row_key['key'])
+                    .attr('data-col', function(key){return key['key'];})
+                    .append('pre')
+                    .append('code')
+                    .attr('contenteditable',true)
+            });
+        var header = table.insert("thead", ":first-child")
+          .append('tr');
+        header.append('td');
+        header.selectAll('th')
+            .data(keys)
+            .enter()
+            .append('th')
+            .classed('y-axis',true)
+            .text( function(d){return d['key'];});
+      });
+
+      dispatch.on( 'init.dispatches',  function(){
+
+        d3.keys( document.__data__.page['dispatch']).forEach(function(key){
+          dispatch[key] = d3.dispatch( key )[key];
+        })
+        d3.entries( document.__data__.page['dispatch'])
+          .forEach( function(dispatch_ns ){
+            var dispatch_name = dispatch_ns.key;
+
+            d3.entries( dispatch_ns.value )
+              .forEach( function(dispatch_event ){
+                  dispatch.on( dispatch_name + '.' + dispatch_event.key, dispatch_event.value)
+              });
+
+          });
+
+      });
+
+      dispatch.on( 'init.dataframe', function(){
+        d3.text( 'http://localhost:5001/dataframe', function(txt){
+          d3.select('.viewer')
+              .append('div')
+              .classed('viewport', true)
+              .classed('hidden', true)
+              .attr('id', 'dataframe-explorer')
+              .html(txt)
+        });
+      });
+
+      dispatch.on( 'init.bokeh',  function(){
+        var table = d3.select('.viewer')
+            .append('div')
+            .attr('id', 'bokeh-explorer')
+            .classed('viewport', true)
+            .classed('hidden', true)
+      });
+
+      var prefill_table = function(){
+        var yaml_file = "{{ url_for('static', filename='init.yml') }}";
+        d3.text( yaml_file, function(yml){
+          var init_data = jsyaml.load(yml);
+
+          d3.entries( init_data['table'] )
+            .forEach( function(d){
+              var row = d.key;
+              d3.entries( d.value )
+                .forEach( function(d){
+                  var col = d.key;
+                  d3.select( '[data-row-name="'+ row +'"]' )
+                    .select( 'td[data-col="'+ col +'"] code' )
+                    .text(d.value)
+                })
+            })
+          d3.entries( init_data['text'] )
+            .forEach( function(d,i){
+              var key = d.key;
+              d3.entries( d.value )
+                .forEach( function(d,i){
+                    document.__data__.rows[key][d.key] = d.value;
+                    console.log(document.__data__.rows[key]);
+                })
+            })
+        })
+      };
+
+      var toggle_tabs = function(node){
+              d3.selectAll('.viewport')
+                .classed( 'hidden', true );
+                console.log(node.dataset.trigger)
+              d3.select('#' + node.dataset.trigger + '-explorer')
+                .classed('hidden', false);
+              if ( node.dataset.trigger == 'table'){
+                d3.selectAll(".editor")
+                  .style('display','block')
+                d3.selectAll(".preview")
+                  .style('display','none')
+              } else {
+                d3.selectAll(".editor")
+                  .style('display','none')
+                  d3.selectAll(".preview")
+                    .style('display','block')
+              }
+            };
+
+      function bokeh_yaml(){
+              // create post data for the bokeh endpoint
+              // the format is slightly arbitrary
+              var figure = {}
+              d3.selectAll( '#table-explorer tr.x-axis')
+                  .each( function(d){
+                      if (d3.select(this).selectAll('td').filter( function(){ return this.innerText.length > 0 })[0].length > 0){
+                        var node = this;
+                        figure[this.__data__['key']] = {
+                            'figure': {
+                                'width': 400,
+                                'height': 400,
+                            },
+                            'glyphs': []
+                        };
+                        if (this.__data__['context'].trim().length > 0){
+                          d3.entries(jsyaml.load( this.__data__['context'] ))
+                            .forEach( function(data){
+                                figure[node.__data__['key']]['figure'][data.key] = data.value
+                            })
+                        }
+                        var data = figure[this.__data__['key']];
+                        d3.select(this)
+                          .selectAll('td')
+                          .each( function(col){
+                            if (this.innerText.trim().length > 0){
+                                var selection = this;
+                                d3.entries(jsyaml.load( this.innerText ))
+                                    .forEach( function(d){
+                                        var tmp = {};
+                                        tmp[d.key] = d.value
+                                        tmp[d.key]['x'] =  selection.dataset['row']
+                                        tmp[d.key]['y'] =  selection.dataset['col']
+                                        data['glyphs'].push(tmp)
+                                    })
+                            }
+                          })
+
+                      }
+                  });
+              return figure;
+          };
+
+      dispatch.on( 'dataframe.hider', function(){
+        d3.selectAll('.preview, .editor')
+          .style('display','none');
+      })
+      dispatch.on( 'bokeh.update', function(){
+        d3.json("/bokeh")
+            .header("Content-Type", "application/json")
+            .post(JSON.stringify(
+                    bokeh_yaml()
+                ), function(error, data) {
+                    Bokeh.$(function() {
+                        Bokeh.load_models( JSON.parse(data['all_models']));
+                        var model = Bokeh.Collections( data['ref']['type'] ).get( data['ref']['id'] );
+                        var view = new model.default_view({
+                            model: model,
+                            el: '#bokeh-explorer'
+                        });
+                        Bokeh.index = {};
+                        Bokeh.index[data['ref']['id']] = view;
+                    }); //Bokeh
+
+                    d3.selectAll('.bk-bs-nav-tabs')
+                      .on('click', function(){
+
+                        var node = d3.select(this)
+                          .select('.bk-bs-active')
+
+                        md = document.__data__.rows[node.text().trim()]['md']
+                        d3.select('#metadata-preview .panel-heading')
+                          .text('About this plot')
+
+                        d3.select('#metadata-preview .panel-body')
+                          .html(writer.render(reader.parse(md)))
+                      })
+                    d3.select('.bk-bs-nav-tabs')
+                      .node().click()
+            }); //post
+      });
+
+      create_axis_editor = function(selector, value_key, node){
+        var key = node.parentNode.dataset.rowName;
+        var footer = d3.select(selector)
+          .select('.panel-body')
+          .html('');
+
+        d3.select(selector).select('.panel-heading')
+          .text( 'Edit plot for ' + node.__data__.key);
+        footer = footer.append('textarea').node();
+        var editor = CodeMirror.fromTextArea( footer, {
+          'theme': 'midnight',
+        });
+        console.log(document.__data__.rows[key])
+        editor.setValue( document.__data__.rows[key][value_key] );
+        editor.on('change', function(){
+          document.__data__.rows[key][value_key] = editor.getValue();
+        });
+        return null;
+      };
+
+
+      //start doing things
+
+      d3.json('http://localhost:5001/keys',function(keys){
+        // create table UI
+        d3.text( "{{ url_for('static', filename='dispatch.yaml') }}", function(yml){
+            d3.select(document)
+              .datum({
+                'page': jsyaml.load( yml ),
+                'keys': keys,
+                'rows': {},
+              });
+            keys.forEach(function(key){
+              document.__data__.rows[ key ] = {
+                  'key': key,
+                  'md': '',
+                  'context': '',
+              }
+            });
+
+            dispatch.init();
+            prefill_table();
+            d3.selectAll('.view-trigger')
+              .on('click', function(){
+                var node = this;
+                toggle_tabs(node);
+                dispatch[this.dataset.trigger]()
+              })
+
+            d3.selectAll('tbody tr.x-axis th')
+              .on('click', function(){
+                  dispatch['row-click']( this );
+              })
+          });
+        });
+
+
+    })();
+    </script>
+
+    </body>
+</html>

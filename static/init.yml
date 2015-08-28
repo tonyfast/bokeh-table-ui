@@ -1,0 +1,15 @@
+table:
+  Petal Width:
+      Sepal Length: "circle:\n  color: blue"
+      Petal Length: "square:\n  color: red"
+  Petal Length:
+      Sepal Length: "triangle:\n  color: olive"
+
+  sq__ft:
+      price: "circle:\n  color: orange"
+text:
+  Petal Width:
+      context: "width: 700"
+      md:  "## Petal Width Plot"
+  Petal Length:
+      md: "_This is about Petal Length_"

@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js">
+            </script>
+            
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/3.4.0/js-yaml.js">
+            </script>
+        
+        <script type="text/javascript" src="http://cdn.pydata.org/bokeh/release/bokeh-0.9.1.min.js">
+            </script>
+        <!--link rel="stylesheet" href="https://cdn.rawgit.com/primer/primer/master/css/primer.css" type="text/css"-->
+        <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-0.9.1.min.css" type="text/css">
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+
+        <style>
+        #table table td {
+            text-align: left;
+        }
+        </style>
+    </head>
+    
+    <body>
+        <div class="container">
+        <div class="tabnav">
+          <ul class="nav-tabs">
+            <li class="tab active"><a data-trigger="#table">Table</a>
+            <li class="tab"><a id="bokeh-trigger" data-trigger="#bokeh-pane">Bokeh</a>
+            <li class="tab"><a id="dataframe-trigger" data-trigger="#dataframe">DataFrame</a>
+          </ul>
+            <div id="table" class="pane blankslate "></div>
+            <div id='bokeh-pane' class="pane blankslate hidden">
+                <div id="bokeh-view"></div>
+            </div>
+            <div id='dataframe' class="pane blankslate hidden"></div>
+        </div>
+        </div>
+        <a id="update-table">Click it</a>
+        <script>
+        ;(function(){
+            // toogle tabs
+            var tab_click = function(node){
+                        d3.selectAll('.tabnav-tab')
+                            .classed('selected',false)
+                        d3.select(node)
+                            .classed('selected',true)
+                        d3.selectAll( '.pane')
+                            .classed('hidden', true)
+                        d3.select(node.dataset.trigger)
+                            .classed('hidden', false)
+                }
+
+            d3.selectAll( '.tabnav-tab')
+                .on('click', function(){
+                        tab_click(this)
+                    })
+        
+            //get dataframe keys
+            d3.json('/keys',function(keys){
+                // create table UI
+                var table = d3.select('#table')
+                    .append('table')
+                    .classed('table', true)
+                    .classed('table-bordered', true)                    
+                
+                table.selectAll('tr')
+                    .data(keys)
+                    .enter()
+                    .append('tr')
+                    .attr( 'data-row-name', function(d){return d;})
+                    .each( function(row_key){
+                        var row = d3.select(this);
+                        row.append('th')
+                            .classed('x-axis',true)
+                            .text(row_key)
+                        row.selectAll('td')
+                            .classed('editable',true)
+                            .data( keys )
+                            .enter()
+                            .append('td')
+                            .attr('data-row', row_key)
+                            .attr('data-col', function(key){return key;})
+                            .append('pre')
+                            .append('code')
+                            .attr('contenteditable',true)
+                    })
+                var header = table.insert("tr", ":first-child");
+                header.append('td');
+                header.selectAll('th')
+                    .data(keys)
+                    .enter()
+                    .append('th')
+                    .classed('y-axis',true)
+                    .text( function(d){return d;});
+                        
+                // activate row by clicking on row header
+                var row_selector = d3.selectAll('tr > th.x-axis')
+                row_selector.on('click', function(){
+                        d3.selectAll('tr').classed('current-axis',false)
+                        d3.select(this.parentNode)
+                            .classed('current-axis',true)
+                        
+                    })
+                    
+            })
+            function bokeh_yaml(){
+                    // create post data for the bokeh endpoint
+                    // the format is slightly arbitrary
+                    var data = {
+                        'figure': {
+                            'width': 400,
+                            'height': 400,
+                        },
+                        'glyphs': []
+                    };
+                    d3.selectAll( '#table tr.current-axis td')
+                        .each( function(d){
+                            if (this.innerText.trim().length > 0){
+                                var selection = this;
+                                d3.entries(jsyaml.load( this.innerText ))
+                                    .forEach( function(d){
+                                        var tmp = {};
+                                        tmp[d.key] = d.value
+                                        tmp[d.key]['x'] =  selection.dataset['row']
+                                        tmp[d.key]['y'] =  selection.dataset['col']
+                                        data['glyphs'].push(tmp)
+                                    })                                
+                            }
+                        });
+                    return data;
+                }
+                
+            // Update the bokeh plot when the tab is clicked
+            d3.select('#bokeh-trigger')
+                .on('click', function(){  
+                    tab_click(this)
+                    d3.json("/bokeh")
+                        .header("Content-Type", "application/json")
+                        .post(JSON.stringify(
+                                bokeh_yaml()
+                            ), function(error, data) {
+                                Bokeh.$(function() {
+                                    Bokeh.load_models( JSON.parse(data['all_models']));
+                                    var model = Bokeh.Collections( data['ref']['type'] ).get( data['ref']['id'] );
+                                    var view = new model.default_view({
+                                        model: model,
+                                        el: '#bokeh-view'
+                                    });
+                                    Bokeh.index = {};
+                                    Bokeh.index[data['ref']['id']] = view;
+                                }); //Bokeh
+                                
+                        }); //post
+
+                    })
+            //Show the pandas data frame
+            //This was really easy to add because of yaml
+            d3.select('#dataframe-trigger')
+                .on('click',function(){
+                        tab_click(this)
+                        d3.text( '/dataframe', function(txt){
+                                d3.select('#dataframe')
+                                    .html( txt )
+                            })
+                    })
+            })();
+        </script>
+    </body>
+</html>

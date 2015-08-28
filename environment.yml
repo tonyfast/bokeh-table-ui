@@ -1,0 +1,16 @@
+name: flask-yml
+channels:
+- bokeh
+- blaze
+- pandas
+dependencies:
+- python=2.7
+- bokeh
+- pandas
+- blaze
+- pip
+- pip:
+    - flask
+    - flask-socketio
+    - flask-bower
+    - jsonpointer
