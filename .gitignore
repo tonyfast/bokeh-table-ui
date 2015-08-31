@@ -1,0 +1,15 @@
+.DS_store
+bower_components
+!bower_components/codemirror/lib/codemirror.css
+!bower_components/codemirror/lib/codemirror.js
+!bower_components/commonmark/dist/commonmark.js
+!bower_components/esprima/esprima.js
+!bower_components/d3/d3.min.js
+!bower_components/js-yaml/dist/js-yaml.min.js
+!bower_components/bootstrap/dist/css/bootstrap.min.css
+!bower_components/bootstrap/dist/css/bootstrap-theme.min.css
+!bower_components/github-markdown-css/github-markdown.css
+!bower_components/codemirror/theme/midnight.css
+.ipynb_checkpoints
+__pycache__
+*.pyc
