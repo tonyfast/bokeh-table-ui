@@ -129,4 +129,4 @@ for route in routes:
 
 # run the app
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app,port=5000)
