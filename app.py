@@ -97,7 +97,7 @@ def show_dataframe( data_key ):
     JSON pointer to access bz.Data
     """
     convert = jp.resolve_pointer(
-        data, '/'+ data_key.rstrip('/')
+        data,    '/'+ data_key.rstrip('/')
     )
 
     if data_key.split('/')[0] in ['iris','accounts']:
@@ -129,4 +129,4 @@ for route in routes:
 
 # run the app
 if __name__ == '__main__':
-    socketio.run(app,port=5001)
+    socketio.run(app)
