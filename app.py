@@ -2,6 +2,8 @@
 main flask application for table ui
 """
 
+import os
+
 import json
 import jsonpointer as jp
 import yaml
@@ -129,4 +131,5 @@ for route in routes:
 
 # run the app
 if __name__ == '__main__':
-    socketio.run(app,port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
