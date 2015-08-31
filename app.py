@@ -48,7 +48,6 @@ def keys():
     Return dataframe keys
     """
     #
-    print( datademo )
     return json.dumps( datademo.columns.values.tolist() )
 
 def dataframe_html():
@@ -100,8 +99,6 @@ def show_dataframe( data_key ):
     convert = jp.resolve_pointer(
         data, '/'+ data_key.rstrip('/')
     )
-    print(convert)
-    #import pdb; pdb.set_trace();
 
     if data_key.split('/')[0] in ['iris','accounts']:
         # Convert blaze object to html representation
@@ -124,8 +121,7 @@ for route in routes:
     method = ['GET']
     for csv in route.split(','):
         print( func_to_decorate )
-        app.route(
-            csv,
+        app.route( csv,
             methods = methods
         )(
             globals()[func_to_decorate],
