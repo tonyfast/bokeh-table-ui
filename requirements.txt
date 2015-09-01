@@ -1,7 +1,0 @@
-Flask
-Jinja2
-Werkzeug
-requests
-flask-socketio
-flask-bower
-jsonpointer

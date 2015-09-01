@@ -1,3 +1,11 @@
+# Conda buildpack
+
+* [Heroku Conda Buildpack](https://github.com/kennethreitz/conda-buildpack) running Python v2.7.
+* ``Procfile`` - capitalization in important
+* scale dynos
+
+Include
+
 # Highlights
 
 * yaml manifest for flask routes
@@ -15,26 +23,6 @@ Bokeh Columns Data Sources
 http://localhost:5001/
 http://localhost:5001/?data=http://samplecsvs.s3.amazonaws.com/Sacramentorealestatetransactions.csv
 
-
-## Flask Bits
-
- ``app.yaml`` describes the routes for the apps.  The yaml structure is
-
-```yaml
-routes:
-  '/,index.html'/:
-    function: hello
-    methods: [get]
-```
-
-is equivalent to
-
-```python
-@app.route( '/', methods=['GET'])
-@app.route( '/index.html', methods=['GET'])
-def hello():
-  return "hello"
-```
 
 ## Bokeh Bits
 
