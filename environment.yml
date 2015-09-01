@@ -1,4 +1,4 @@
-name: bokeh-table
+name: app
 channels:
 - bokeh
 - blaze
