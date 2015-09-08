@@ -1,387 +1,223 @@
 <!doctype html>
 <html>
     <head>
-        <link rel="stylesheet" href="{{ url_for('bower.static', filename='codemirror/lib/codemirror.css') }}">
-        <script src="{{ url_for('bower.static', filename='codemirror/lib/codemirror.js') }}"></script>
-        <script src="{{ url_for('bower.static', filename='commonmark/dist/commonmark.js') }}"></script>
-
-        <script src="{{ url_for('bower.static', filename='esprima/esprima.js') }}"></script>
-        <script src="{{ url_for('bower.static', filename='d3/d3.min.js') }}"></script>
-        <script src="{{ url_for('bower.static', filename='js-yaml/dist/js-yaml.min.js') }}"></script>
-        <link rel="stylesheet" href="{{ url_for('bower.static', filename='bootstrap/dist/css/bootstrap.min.css') }}">
-        <link rel="stylesheet" href="{{ url_for('bower.static', filename='bootstrap/dist/css/bootstrap-theme.min.css') }}">
-        <link rel="stylesheet" href="{{ url_for('bower.static', filename='github-markdown-css/github-markdown.css') }}">
-        <link rel="stylesheet" href="{{ url_for('bower.static', filename='codemirror/theme/midnight.css') }}">
-
-        <script type="text/javascript" src="{{ url_for('static', filename='bokeh-0.9.1.min.js') }}">
-            </script>
-        <link rel="stylesheet" href="{{ url_for('static', filename='bokeh-0.9.1.min.css') }}" type="text/css">
-
-        <style>
-        #table-explorer td {
-            text-align: left;
-        }
-        #table-explorer tr.current-axis {
-            border: black;
-        }
-        .viewport.hidden {
-          display: none;
-        }
-        .viewport {
-          display: block;
-        }
-        </style>
+      {% include "head.html" %}
     </head>
-
     <body>
-    <div class="container">
-        <ul class="nav nav-tabs nav-justified">
-        </ul>
+      {% include "nav.html" %}
+      <div class="container">
+        <div class="row columns">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              Column Data Sources
+            </div>
+            <div class="panel-body">
+              {% for col in columns %}
+              <button class="column-{{col['name']}} col-md-3 btn btn-primary" type="button" data-column-name="{{col['name']}}">
+                {{col['name']}}<span class="badge">{{col['format']}}</span>
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              Data Table
+            </div>
+            <div class="panel-body">
+              {{table_html | safe}}
+            </div>
+          </div>
+
+        </div>
+        <br>
         <div class="panel panel-default">
-          <div class="viewer panel-body">
+          <div class="panel-heading">
+            <ul class="interactive nav nav-pills">
+              <li class="active"><a id="editor-tab" >Editor</a></li>
+              <li><a id="bokeh-tab" >Bokeh</a></li>
+            </ul>
           </div>
-        </div>
-        <div class="row">
-          <div class="col-md-4 editor" id="axis-editor">
-            <div class="panel panel-warning row">
-              <div class="panel-heading">About this plot</div>
-              <div class="panel-body"></div>
+          <div class="panel-body">
+            <div class="row plots">
             </div>
-          </div>
-          <div class="col-md-8 editor" id="metadata-editor">
-            <div class="panel panel-danger row">
-              <div class="panel-heading">About this data</div>
-              <div class="panel-body"></div>
-            </div>
-          </div>
-          <div class="col-md-12 preview" id="metadata-preview" style="display:none;">
-            <div class="panel panel-warning row">
-              <div class="panel-body"></div>
+            <br>
+            <div class="row bokehs" id="bokeh-explorer">
             </div>
           </div>
         </div>
-    </div>
+        </div>
+      </div>
+    </body>
     <script>
-    ;(function(){
+    d3.selectAll('table').classed('table',true)
 
-      // commonMark Markdown Processor
-      reader = new commonmark.Parser();
-      writer = new commonmark.HtmlRenderer();
+    var columns = d3.selectAll('[data-column-name]');
+    var column_titles = columns[0].map( function(_this){
+      return _this.dataset.columnName;
+    })
 
-      // initialize dispatch namespaces
-      var dispatch = d3.dispatch('init','bokeh','table','dataframe');
+    var bokeh_yaml = function(){
+      figures = {
+        'dataset_name': d3.select('.datasets .active a').node().dataset['datasetName'],
+      };
+      d3.selectAll('.plots table tbody')
+        .each( function(d){
+          var row = d3.select(this)
+            .select('th')
+            .data()[0];
 
+          d3.select(this)
+            .selectAll('td')
+            .each( function(){
+              var col = this.__data__;
+              if (this.innerText.trim().length > 0){
+                figures[row] = {
+                  'figure': {
+                    'width': 400,
+                    'height': 400,
+                  },
+                  'glyphs': []
+                };
+                d3.entries(jsyaml.load( this.innerText ))
+                    .forEach( function(d){
+                        var tmp = {};
+                        tmp[d.key] = d.value;
+                        tmp[d.key]['x'] = row;
+                        tmp[d.key]['y'] = col;
+                        figures[row]['glyphs'].push(tmp)
+                    })
+              }
+            })
 
+        });
+        console.log(figures)
+        return figures;
+      }
 
-      dispatch.on( 'init.tabs', function(){
-          // Load action tabs
-          // Tabs are named in dispatch.yml just out of curiousity
-          var tabs =   d3.select('ul.nav.nav-tabs')
-                .selectAll('li')
-                .data(document.__data__.page.tabs)
-                .enter()
-                .append('li')
-                .attr('role','presentation')
-                .each( function(d, i){
-                        d3.select(this)
-                            .append('a')
-                            .attr('data-trigger',d)
-                            .classed( 'view-trigger', true )
-                            .classed('active', i ==0 )
-                            .text(d)
-                });
-      });
+      d3.select('#bokeh-tab')
+        .on('click', function(){
 
-      dispatch.on( 'init.table', function(){
-        // load the editable table for the Bokeh plots.
-        var keys = d3.values(document.__data__.rows);
+        })
+    columns.on('click', function(){
+        var column_name = this.dataset['columnName'];
+        var class_name = "column-" + column_name;
+        var column = d3.selectAll( '[data-column-name="'+column_name+'"]' );
+        var plots = d3.select('.plots');
+        if ( plots.select('.'+class_name).node() ){
 
-        // Striped Bootstrap Table
-        var table = d3.select('.viewer')
-            .append('table')
-            .classed('viewport', true)
-            .classed('hidden', false)
-            .attr('id', 'table-explorer')
-            .classed('table', true)
-            .classed('table-bordered', true)
-            .classed('table-striped', true);
-
-        // Contenteditable table cells
-        // Keys are recieved from an app endpoint
-        table.append('tbody')
-            .selectAll('tr')
-            .data(keys)
-            .enter()
-            .append('tr')
-            .attr( 'data-row-name', function(d){return d['key'];})
-            .classed('x-axis',true)
-            .each( function(row_key){
-                var row = d3.select(this);
-                row.append('th')
-                    .text(row_key['key'])
-                row.selectAll('td')
-                    .classed('editable',true)
-                    .data( keys )
-                    .enter()
-                    .append('td')
-                    .attr('data-row', row_key['key'])
-                    .attr('data-col', function(key){return key['key'];})
-                    .append('pre')
-                    .append('code')
-                    .attr('contenteditable',true)
+        } else {
+          var panel = plots.append('div')
+            .classed( class_name, true )
+            .classed({
+              'panel': true,
+              'panel-default': true,
+              'plot': true,
             });
 
-        // Inserted table header last
-        var header = table.insert("thead", ":first-child")
-          .append('tr');
-        header.append('td');
-        header.selectAll('th')
-            .data(keys)
+          var table = panel.append('div')
+            .classed('panel-body', true )
+            .append('table')
+            .classed('table', true );
+
+          var header = table.append('thead')
+            .append('tr');
+          var control = header.append('td').text('VS')
+            .datum({
+              'name': column_name,
+            });
+
+          control.on('mouseenter', function(){
+              this.innerText = 'Close';
+          })
+          .on('mouseleave', function(){
+              this.innerText = 'VS';
+          })
+          .on('click', function(){
+
+            d3.select( '.plot.column-' + this.__data__.name )
+              .remove();
+          });
+          header.selectAll('th')
+            .data(column_titles)
             .enter()
             .append('th')
-            .classed('y-axis',true)
-            .text( function(d){return d['key'];});
-      });
+            .text(function(name){return name;});
+          var row = table.append('tbody')
+            .append('tr');
+          row.append('th')
+            .datum( column_name )
+            .text(column_name);
+          row.selectAll('td')
+            .data(column_titles)
+            .enter()
+            .append('td')
+            .append('pre')
+            .append('code')
+            .attr('contenteditable', true);
 
-      // initialize dispatches in dispatch.yaml
-      //  this was kind of a weak idea
-      dispatch.on( 'init.dispatches',  function(){
-        d3.keys( document.__data__.page['dispatch']).forEach(function(key){
-          dispatch[key] = d3.dispatch( key )[key];
-        })
-        d3.entries( document.__data__.page['dispatch'])
-          .forEach( function(dispatch_ns ){
-            var dispatch_name = dispatch_ns.key;
+          var footer = panel.append('div')
+            .classed('panel-footer',true)
+            .append('textarea')
+            .classed('metadata', true )
+            .classed('yaml',true)
+            .classed('form-control',true)
+            .attr('rows',1)
+            .text('---\n# Figure Data\n---\n##Markdown data');
 
-            d3.entries( dispatch_ns.value )
-              .forEach( function(dispatch_event ){
-                  dispatch.on( dispatch_name + '.' + dispatch_event.key, dispatch_event.value)
-              });
+          var itabs = d3.selectAll('.interactive li');
+          itabs.on('click', function(){
+              itabs.classed('active', false);
+              console.log(this)
+              d3.select(this).classed( 'active', true)
+            })
 
-          });
+        }
 
-      });
+        var dispatch = d3.dispatch( 'bokeh' );
 
-      // Initialize the dataframe view from a panadas object
-      dispatch.on( 'init.dataframe', function(){
-        d3.text( '/dataframe', function(txt){
-          d3.select('.viewer')
-              .append('div')
-              .classed('viewport', true)
-              .classed('hidden', true)
-              .attr('id', 'dataframe-explorer')
-              .html(txt)
+        dispatch.on( 'bokeh.update', function(){
+          d3.json("/bokeh")
+              .header("Content-Type", "application/json")
+              .post(JSON.stringify(
+                      bokeh_yaml()
+                  ), function(error, data) {
+                      // Load plot data from the Flask application
+                      // Placeholder exists for the Bokeh plot.
+                      // ref - p.dump()
+                      Bokeh.$(function() {
+                          Bokeh.load_models( JSON.parse(data['all_models']));
+                          var model = Bokeh.Collections( data['ref']['type'] ).get( data['ref']['id'] );
+                          var view = new model.default_view({
+                              model: model,
+                              el: '#bokeh-explorer'
+                          });
+                          Bokeh.index = {};
+                          Bokeh.index[data['ref']['id']] = view;
+                      }); //Bokeh
+                      d3.selectAll('.bk-bs-nav-tabs')
+                        .on('click', function(){
+                        })
+                      d3.select('.bk-bs-nav-tabs')
+                        .node().click()
+              }); //post
         });
-      });
 
-      // Leave a placeholder for bokeh visualizations
-      dispatch.on( 'init.bokeh',  function(){
-        var table = d3.select('.viewer')
-            .append('div')
-            .attr('id', 'bokeh-explorer')
-            .classed('viewport', true)
-            .classed('hidden', true)
-      });
-
-      // prefill tables from static/init.yaml
-      var prefill_table = function(){
-        var yaml_file = "{{ url_for('static', filename='init.yml') }}";
-        d3.text( yaml_file, function(yml){
-          var init_data = jsyaml.load(yml);
-
-          // initialize table values
-          d3.entries( init_data['table'] )
-            .forEach( function(d){
-              var row = d.key;
-              d3.entries( d.value )
-                .forEach( function(d){
-                  var col = d.key;
-                  d3.select( '[data-row-name="'+ row +'"]' )
-                    .select( 'td[data-col="'+ col +'"] code' )
-                    .text(d.value)
-                })
+        d3.select('#bokeh-tab')
+          .on('click', function(){
+            dispatch['bokeh']();
+            d3.select('.plots')
+              .style('display','none')
+            d3.select('.bokehs')
+              .style('display','block')
+          })
+        d3.select('#editor-tab')
+          .on('click', function(){
+            d3.select('.bokehs')
+              .style('display','none')
+            d3.select('.plots')
+              .style('display','block')
             })
-          // initialize metadata values
-          d3.entries( init_data['text'] )
-            .forEach( function(d,i){
-              var key = d.key;
-              d3.entries( d.value )
-                .forEach( function(d,i){
-                    document.__data__.rows[key][d.key] = d.value;
-                })
-            })
-        })
-      };
-
-      // class events when a tab is clicked
-      var toggle_tabs = function(node){
-              d3.selectAll('.viewport')
-                .classed( 'hidden', true );
-                console.log(node.dataset.trigger)
-              d3.select('#' + node.dataset.trigger + '-explorer')
-                .classed('hidden', false);
-              if ( node.dataset.trigger == 'table'){
-                d3.selectAll(".editor")
-                  .style('display','block')
-                d3.selectAll(".preview")
-                  .style('display','none')
-              } else {
-                d3.selectAll(".editor")
-                  .style('display','none')
-                  d3.selectAll(".preview")
-                    .style('display','block')
-              }
-            };
-
-      // process table cell yaml data and convert it into a Bokeh "object"
-      function bokeh_yaml(){
-              // create post data for the bokeh endpoint
-              // the format is slightly arbitrary
-              var figure = {}
-              d3.selectAll( '#table-explorer tr.x-axis')
-                  .each( function(d){
-                      if (d3.select(this).selectAll('td').filter( function(){ return this.innerText.length > 0 })[0].length > 0){
-                        var node = this;
-                        figure[this.__data__['key']] = {
-                            'figure': {
-                                'width': 400,
-                                'height': 400,
-                            },
-                            'glyphs': []
-                        };
-                        if (this.__data__['context'].trim().length > 0){
-                          d3.entries(jsyaml.load( this.__data__['context'] ))
-                            .forEach( function(data){
-                                figure[node.__data__['key']]['figure'][data.key] = data.value
-                            })
-                        }
-
-                        var data = figure[this.__data__['key']];
-                        d3.select(this)
-                          .selectAll('td')
-                          .each( function(col){
-                            if (this.innerText.trim().length > 0){
-                                var selection = this;
-                                d3.entries(jsyaml.load( this.innerText ))
-                                    .forEach( function(d){
-                                        var tmp = {};
-                                        tmp[d.key] = d.value
-                                        tmp[d.key]['x'] =  selection.dataset['row']
-                                        tmp[d.key]['y'] =  selection.dataset['col']
-                                        data['glyphs'].push(tmp)
-                                    })
-                            }
-                          })
-
-                      }
-                  });
-              return figure;
-          };
-
-      // hide dataframe
-      dispatch.on( 'dataframe.hider', function(){
-        d3.selectAll('.preview, .editor')
-          .style('display','none');
       })
-
-      // Render an updated bokeh visualization.
-      dispatch.on( 'bokeh.update', function(){
-        d3.json("/bokeh")
-            .header("Content-Type", "application/json")
-            .post(JSON.stringify(
-                    bokeh_yaml()
-                ), function(error, data) {
-
-                    // Load plot data from the Flask application
-                    // Placeholder exists for the Bokeh plot.
-                    // ref - p.dump()
-                    Bokeh.$(function() {
-                        Bokeh.load_models( JSON.parse(data['all_models']));
-                        var model = Bokeh.Collections( data['ref']['type'] ).get( data['ref']['id'] );
-                        var view = new model.default_view({
-                            model: model,
-                            el: '#bokeh-explorer'
-                        });
-                        Bokeh.index = {};
-                        Bokeh.index[data['ref']['id']] = view;
-                    }); //Bokeh
-
-                    d3.selectAll('.bk-bs-nav-tabs')
-                      .on('click', function(){
-
-                        var node = d3.select(this)
-                          .select('.bk-bs-active')
-
-                        md = document.__data__.rows[node.text().trim()]['md']
-                        d3.select('#metadata-preview .panel-heading')
-                          .text('About this plot')
-
-                        d3.select('#metadata-preview .panel-body')
-                          .html(writer.render(reader.parse(md)))
-                      })
-                    d3.select('.bk-bs-nav-tabs')
-                      .node().click()
-            }); //post
-      });
-
-      // Code mirror cells to edit metadata
-      create_axis_editor = function(selector, value_key, node){
-        var key = node.parentNode.dataset.rowName;
-        var footer = d3.select(selector)
-          .select('.panel-body')
-          .html('');
-
-        d3.select(selector).select('.panel-heading')
-          .text( 'Edit plot for ' + node.__data__.key);
-        footer = footer.append('textarea').node();
-        var editor = CodeMirror.fromTextArea( footer, {
-          'theme': 'midnight',
-        });
-        console.log(document.__data__.rows[key])
-        editor.setValue( document.__data__.rows[key][value_key] );
-        editor.on('change', function(){
-          document.__data__.rows[key][value_key] = editor.getValue();
-        });
-        return null;
-      };
-
-      // Get the keys and initialize the table.
-      d3.json('/keys',function(keys){
-        // create table UI
-        d3.text( "{{ url_for('static', filename='dispatch.yaml') }}", function(yml){
-            d3.select(document)
-              .datum({
-                'page': jsyaml.load( yml ),
-                'keys': keys,
-                'rows': {},
-              });
-            keys.forEach(function(key){
-              document.__data__.rows[ key ] = {
-                  'key': key,
-                  'md': '',
-                  'context': '',
-              }
-            });
-
-            dispatch.init();
-            prefill_table();
-            d3.selectAll('.view-trigger')
-              .on('click', function(){
-                var node = this;
-                toggle_tabs(node);
-                dispatch[this.dataset.trigger]()
-              })
-
-            d3.selectAll('tbody tr.x-axis th')
-              .on('click', function(){
-                  dispatch['row-click']( this );
-              })
-          });
-        });
-
-
-    })();
     </script>
-
-    </body>
 </html>

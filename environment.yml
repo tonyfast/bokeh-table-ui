@@ -13,4 +13,3 @@ dependencies:
 - pip:
     - flask-socketio
     - flask-bower
-    - jsonpointer

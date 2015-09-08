@@ -1,0 +1,38 @@
+<nav class="navbar navbar-default">
+  <div class="container-fluid">
+    <h6>Blaze Datasets</h6>
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav datasets">
+        {% for dataset in datasets %}
+         <li class="{% if dataset == name %}active{% endif %}">
+           <a href='/app/{{dataset}}' data-dataset-name="{{dataset}}">{{dataset}}<span class="badge"></span></a>
+         </li>
+        {% endfor %}
+      </ul>
+
+    <form class="navbar-form navbar-right" role="search">
+       <div class="form-group">
+         <input id="create-value" type="text" class="form-control" placeholder="data-name: /app/api/structure"  style="width: 500px">
+       </div>
+       <button id="create-submit" class="btn btn-default">Submit</button>
+     </form>
+    </div>
+
+    <script>
+    {% if not 'accounts' in datasets %}
+    d3.select('#create-value').node().value = "accounts: /pandas/read_csv?filepath_or_buffer=https://raw.githubusercontent.com/blaze/blaze/master/blaze/examples/data/accounts.csv"
+    {% endif %}
+    d3.select('#create-submit')
+      .on('click', function(){
+        submit_text = jsyaml.load( d3.select('#create-value').node().value )
+        if( submit_text instanceof Object ){
+          values = d3.entries(  submit_text )[0]
+          debugger;
+          d3.text( '/create/' + values.key + values.value, function(d){
+            window.location = '/app/' + values.key;
+          })
+        }
+      })
+    </script>
+  </div>
+</nav>
