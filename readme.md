@@ -19,7 +19,7 @@ Call python functions and data using a URI schema.
 # Sample methods to load
 
 ```
-multiply: http://localhost:5000/api/operator/mul?[/data/iris/sepal_length,10]
+multiply: /operator/mul?[/data/iris/sepal_length,10]
 setosa: /blaze/like/data/iris?species=[setosa]
 real: /pandas/read_csv?filepath_or_buffer=http://www.betfairpromo.com/betfairsp/prices/dwbfpricesukwin07092015.csv
 new: /blaze/by/data/iris/species?max=/blaze/max/data/iris/sepal_length
