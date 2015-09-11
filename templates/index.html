@@ -1,0 +1,227 @@
+<!doctype html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang=""> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" lang=""> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" lang=""> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang=""> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+        <style>
+            body {
+                padding-top: 50px;
+                padding-bottom: 20px;
+            }
+        </style>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+        <script src="{{ url_for('static', filename='js/vendor/modernizr-2.8.3-respond-1.4.2.min.js') }}"></script>
+    </head>
+    <body>
+        <!--[if lt IE 8]>
+            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">bl-keh</a>
+        </div>
+        <!--div id="navbar" class="navbar-collapse collapse">
+          <form class="navbar-form navbar-right" role="form">
+            <div class="form-group">
+              <input type="text" placeholder="Email" class="form-control">
+            </div>
+            <div class="form-group">
+              <input type="password" placeholder="Password" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-success">Sign in</button>
+          </form>
+        </div><!--/.navbar-collapse -->
+      </div>
+    </nav>
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <!--div class="jumbotron">
+      <div class="container">
+        <h1>Hello, world!</h1>
+        <p>This is a template for a simple marketing or informational website. It includes a large callout called a jumbotron and three supporting pieces of content. Use it as a starting point to create something more unique.</p>
+        <p><a class="btn btn-primary btn-lg" href="#" role="button">Learn more &raquo;</a></p>
+      </div>
+    </div-->
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h4><small>a</small> Blaze Editor <small>to a play with data</small></h4>
+            </div>
+            <div class="panel-body editor" data-name="blaze">
+              <textarea>--- #Load data in as a blaze source
+# this statement is blaze.Data( *['iris.csv'] )
+iris: !blaze
+  Data:
+    - static/iris.csv
+---
+# data['ratio'] = operator.truediv( *['/data/iris/sepal_length',/data/iris/sepal_width] )
+ratio: &ratio !operator
+  truediv:
+  - /iris/sepal_length
+  - /iris/sepal_width
+
+# add a new column using YAML aliases
+# *ratio is a pointer to the value at &ratio
+# data['iris'] = blaze.transform( data['iris'], **{ 'sepal_ratio': data['ratio'] })
+iris: !blaze
+  transform:
+  - /iris
+  # Trailing dict is evaluate as kwargs
+  - sepal_ratio: *ratio
+</textarea>
+            </div>
+            <div class="panel-footer">
+              <p><a class="btn btn-default submit-yaml blaze" data-name="blaze" role="button">Update <small>the</small> Workspace &raquo;</a></p>
+            </div>
+          </div>
+       </div>
+       <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h4><small>a</small> Bokeh Editor <small>to create interactive plots</small></h4>
+            </div>
+            <div class="panel-body editor" data-name="bokeh">
+              <textarea>!bokeh
+    source: /iris
+    figure:
+      title: 'Edit figure content'
+    glyphs:
+    - circle:
+        x: sepal_length
+        y: sepal_width
+        size: 10
+</textarea>
+            </div>
+            <div class="panel-footer">
+              <p><a class="btn btn-default submit-yaml bokeh" data-name="bokeh" role="button">Build <small>new</small> Plots &raquo;</a></p>
+            </div>
+          </div>
+       </div>
+      </div>
+      <div class="row output bokeh">
+        <div class="col-md-offset-1 col-md-10">
+          <div class="panel panel-default">
+            <!--div class="panel-heading">
+              <h2>Heading</h2>
+            </div-->
+            <div class="panel-body" id="bokeh">
+              Bokeh visualizations go here
+            </div>
+            <div class="panel-footer">
+              <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+            </div>
+          </div>
+       </div>
+      </div>
+      <!--div class="row output blaze">
+        <div class="col-md-offset-1 col-md-10">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h2>Heading</h2>
+            </div>
+            <div class="panel-body" id="tables">
+              Blaze tables go here
+            </div>
+            <div class="panel-footer">
+              <p><a class="btn btn-default" href="#" role="button">View details &raquo;</a></p>
+            </div>
+          </div>
+       </div>
+     </div-->
+      <hr>
+
+      <footer>
+        <p>&copy; Company 2015</p>
+      </footer>
+    </div> <!-- /container -->
+      {% include "footer.html" %}
+        <script>
+        ;( function(){
+          document.__data__ = {
+            'editor': {},
+          }
+
+          d3.selectAll('.editor')
+            .each( function(d){
+              cm = d3.select(this).select('textarea').node()
+              document.__data__['editor'][this.dataset.name] = CodeMirror.fromTextArea(
+                cm
+                , {
+                  mode: 'yaml',
+                  theme: "midnight",
+                  lineWrapping: true,
+                  lineNumbers: true,
+                  extraKeys: {
+                     "Ctrl-Q": function(cm) {
+                       return cm.foldCode(cm.getCursor());
+                     }
+                   },
+                   foldGutter: {
+                     rangeFinder: new CodeMirror.fold.combine(CodeMirror.fold.indent, CodeMirror.fold.comment)
+                   },
+                  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+                });
+            })
+          d3.selectAll('.submit-yaml.blaze ')
+            .on('click', function(){
+              var name = this.dataset.name; // blaze or bokeh
+              var v = document.__data__.editor[name].getValue();
+
+              d3.json('/'+name)
+                .header("Content-type", "application/json")
+                .post(v, function(error, data){
+                  console.log(data)
+                });
+            })
+
+          d3.selectAll('.submit-yaml.bokeh ')
+            .on('click', function(){
+              var name = this.dataset.name; // blaze or bokeh
+              var v = document.__data__.editor[name].getValue();
+
+              d3.json('/'+name)
+                .header("Content-type", "application/json")
+                .post(v, function(error, data){
+                  d3.select('#bokeh').html('');
+                  Bokeh.$(function() {
+
+                      Bokeh.load_models( JSON.parse(data['all_models']));
+                      var model = Bokeh.Collections( data['ref']['type'] ).get( data['ref']['id'] );
+                      var view = new model.default_view({
+                          model: model,
+                          el: '#bokeh'
+                      });
+                      Bokeh.index = {};
+                      Bokeh.index[data['ref']['id']] = view;
+                    });
+                });
+            })
+
+
+        })();
+        </script>
+
+        <script src="{{ url_for('static', filename='js/plugins.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    </body>
+</html>
