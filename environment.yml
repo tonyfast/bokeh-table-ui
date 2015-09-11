@@ -1,15 +1,9 @@
 name: app
-channels:
-- bokeh
-- blaze
-- pandas
 dependencies:
 - python=2.7
 - bokeh
-- pandas
 - blaze
 - flask
 - pip
 - pip:
-    - flask-socketio
     - flask-bower
